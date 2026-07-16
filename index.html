@@ -396,7 +396,7 @@
 
   function gmapsUrl(place){
     if(place.pid){
-      return `https://www.google.com/maps/place/?q=place_id:${place.pid}`;
+      return `https://www.google.com/maps/search/?api=1&query_place_id=${place.pid}`;
     }
     return `https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lng}`;
   }
