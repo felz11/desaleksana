@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Desa Leksana — Karangkobar, Banjarnegara</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --forest:#16302A;
+    --forest-2:#1E4038;
+    --paper:#EEEDE2;
+    --paper-2:#E2DFCE;
+    --ink:#20241D;
+    --ink-soft:#4B5148;
+    --gold:#B98A2E;
+    --line: rgba(32,36,29,0.14);
+
+    --c-pemerintahan:#B98A2E;
+    --c-keamanan:#24405C;
+    --c-pendidikan:#4E85A6;
+    --c-ibadah:#2F6B4F;
+    --c-kesehatan:#A6462B;
+    --c-ekonomi:#8C5A3C;
+    --c-umum:#3E8A78;
+    --c-kuliner:#C1712E;
+    --c-jasa:#6E5A8C;
+    --c-penginapan:#8C4A6E;
+  }
+
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Work Sans', sans-serif;
+  }
+  h1,h2,h3{ font-family:'Fraunces', serif; margin:0; }
+  .mono{ font-family:'IBM Plex Mono', monospace; letter-spacing:0.04em; }
+
+  /* ---------- Letterhead ---------- */
+  .letterhead{
+    background:var(--ink);
+    color:#D8D6C7;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11.5px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    padding:8px 24px;
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:4px 16px;
+  }
+  .letterhead span.dim{ opacity:0.55; }
+
+  /* ---------- Hero ---------- */
+  .hero{
+    position:relative;
+    background:var(--forest);
+    color:#EFEEE2;
+    padding:64px 24px 56px;
+    overflow:hidden;
+  }
+  .hero::before{
+    content:"";
+    position:absolute; inset:0;
+    background-image:
+      repeating-radial-gradient(ellipse 900px 260px at 15% 120%, transparent 0px, transparent 26px, rgba(239,238,226,0.05) 27px, rgba(239,238,226,0.05) 28px),
+      repeating-radial-gradient(ellipse 1100px 320px at 85% -20%, transparent 0px, transparent 30px, rgba(239,238,226,0.045) 31px, rgba(239,238,226,0.045) 32px);
+    pointer-events:none;
+  }
+  .hero-inner{ position:relative; max-width:1180px; margin:0 auto; }
+  .hero-eyebrow{
+    display:inline-flex; align-items:center; gap:10px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px; letter-spacing:0.12em; text-transform:uppercase;
+    color:var(--gold);
+    border:1px solid rgba(185,138,46,0.5);
+    padding:5px 12px; border-radius:2px;
+    margin-bottom:22px;
+  }
+  .hero-eyebrow .dot{ width:6px; height:6px; border-radius:50%; background:var(--gold); }
+  .hero h1{
+    font-size:clamp(40px, 6vw, 68px);
+    font-weight:600;
+    line-height:1.02;
+    margin-bottom:14px;
+  }
+  .hero h1 em{ font-style:italic; font-weight:300; color:#B9C9BB; }
+  .hero p.lede{
+    max-width:640px;
+    font-size:16.5px;
+    line-height:1.65;
+    color:#C9CBBB;
+    margin-bottom:28px;
+  }
+  .hero-stats{
+    display:flex; flex-wrap:wrap; gap:0;
+    border-top:1px solid rgba(239,238,226,0.18);
+    max-width:760px;
+  }
+  .hero-stats div{
+    padding:14px 22px 0 0;
+    margin-right:22px;
+    border-right:1px solid rgba(239,238,226,0.18);
+    padding-right:22px;
+  }
+  .hero-stats div:last-child{ border-right:none; }
+  .hero-stats .num{ font-family:'Fraunces', serif; font-size:22px; color:#EFEEE2; }
+  .hero-stats .lbl{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:0.08em; text-transform:uppercase; color:#93A296; margin-top:2px; }
+
+  /* ---------- Layout ---------- */
+  .layout{
+    max-width:1180px;
+    margin:0 auto;
+    padding:36px 24px 80px;
+    display:grid;
+    grid-template-columns:minmax(320px, 420px) 1fr;
+    gap:28px;
+    align-items:flex-start;
+  }
+  .panel-title{
+    display:flex; align-items:baseline; justify-content:space-between;
+    margin-bottom:14px;
+  }
+  .panel-title h2{ font-size:20px; font-weight:600; }
+  .panel-title .count{ font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--ink-soft); }
+
+  /* Filters */
+  .filters{
+    display:flex; flex-wrap:wrap; gap:7px;
+    margin-bottom:16px;
+  }
+  .chip{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px; letter-spacing:0.03em;
+    padding:6px 11px;
+    border:1px solid var(--line);
+    border-radius:2px;
+    background:transparent;
+    color:var(--ink-soft);
+    cursor:pointer;
+    display:flex; align-items:center; gap:6px;
+    transition:all .15s ease;
+  }
+  .chip .sw{ width:7px; height:7px; border-radius:50%; }
+  .chip.active{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
+  .chip:hover{ border-color:var(--ink); }
+
+  /* List */
+  .list{
+    display:flex; flex-direction:column; gap:8px;
+    max-height:74vh; overflow-y:auto;
+    padding-right:4px;
+  }
+  .list::-webkit-scrollbar{ width:6px; }
+  .list::-webkit-scrollbar-thumb{ background:var(--paper-2); border-radius:4px; }
+
+  .item{
+    background:#fff;
+    border:1px solid var(--line);
+    border-left:3px solid var(--cat-color, var(--gold));
+    border-radius:3px;
+    padding:12px 14px;
+    cursor:pointer;
+    transition:transform .15s ease, box-shadow .15s ease, background .15s ease;
+    display:flex; gap:12px;
+  }
+  .item:hover{ transform:translateX(2px); box-shadow:0 2px 10px rgba(20,30,20,0.08); }
+  .item.active{
+    background:var(--forest);
+    border-color:var(--forest);
+  }
+  .item.active .item-name, .item.active .item-addr{ color:#EFEEE2; }
+  .item.active .item-cat{ color:#B9C9BB; }
+  .item.hidden{ display:none; }
+
+  .item-num{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    width:26px; height:26px; min-width:26px;
+    border-radius:50%;
+    border:1px solid var(--cat-color, var(--gold));
+    color:var(--cat-color, var(--gold));
+    display:flex; align-items:center; justify-content:center;
+    align-self:flex-start;
+  }
+  .item.active .item-num{ background:var(--gold); border-color:var(--gold); color:var(--forest); }
+
+  .item-body{ flex:1; min-width:0; }
+  .item-cat{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px; letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--cat-color, var(--gold));
+    margin-bottom:3px;
+  }
+  .item-name{ font-family:'Fraunces', serif; font-size:15.5px; font-weight:600; line-height:1.25; margin-bottom:3px; }
+  .item-addr{ font-size:12.5px; color:var(--ink-soft); line-height:1.4; }
+
+  /* Map */
+  .map-wrap{
+    position:sticky; top:20px;
+    height:78vh;
+    border-radius:4px;
+    overflow:hidden;
+    border:1px solid var(--line);
+    box-shadow:0 8px 30px rgba(20,30,20,0.10);
+  }
+  #map{ width:100%; height:100%; background:#DDE2D6; }
+
+  .pin-wrap{ position:relative; width:30px; height:40px; }
+  .pin{
+    position:absolute;
+    left:4px; top:13px;
+    width:22px; height:22px;
+    border-radius:50% 50% 50% 0;
+    transform:rotate(-45deg);
+    background:var(--gold);
+    border:2px solid #fff;
+    box-shadow:0 2px 6px rgba(0,0,0,0.35);
+  }
+  .pin-num{
+    position:absolute;
+    left:15px; top:24px;
+    transform:translate(-50%,-50%);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px; font-weight:500;
+    color:#fff;
+    pointer-events:none;
+  }
+  .pin-wrap.dim{ opacity:0.28; }
+
+  .leaflet-popup-content-wrapper{ border-radius:3px; }
+  .popup-cat{ font-family:'IBM Plex Mono', monospace; font-size:10px; text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-soft); }
+  .popup-name{ font-family:'Fraunces', serif; font-weight:600; font-size:15px; margin:2px 0 3px; }
+  .popup-addr{ font-size:12px; color:var(--ink-soft); line-height:1.4; }
+
+  footer{
+    background:var(--ink);
+    color:#98977F;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11.5px;
+    padding:22px 24px;
+    text-align:center;
+    line-height:1.7;
+  }
+  footer strong{ color:#D8D6C7; }
+
+  @media (max-width: 880px){
+    .layout{ grid-template-columns:1fr; }
+    .map-wrap{ position:relative; top:0; height:52vh; order:-1; }
+    .list{ max-height:none; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="letterhead">
+    <span>Pemerintah Kabupaten Banjarnegara <span class="dim">/</span> Kecamatan Karangkobar <span class="dim">/</span> Desa Leksana</span>
+    <span class="dim">Profil Wilayah &amp; Peta Titik Lokasi</span>
+  </div>
+
+  <section class="hero">
+    <div class="hero-inner">
+      <div class="hero-eyebrow"><span class="dot"></span>Dataran Tinggi Karangkobar, Banjarnegara</div>
+      <h1>Desa Leksana</h1>
+      <p class="lede">Leksana adalah salah satu desa di Kecamatan Karangkobar, Kabupaten Banjarnegara, Jawa Tengah — berada di jalur dataran tinggi menuju Dieng, dikelilingi perbukitan dan lahan pertanian warga. Halaman ini memetakan titik-titik penting di desa: kantor pemerintahan, sekolah, masjid, hingga fasilitas umum, sesuai data yang terdaftar di Google Maps.</p>
+      <div class="hero-stats">
+        <div><div class="num">58</div><div class="lbl">Titik lokasi terdata</div></div>
+        <div><div class="num">10</div><div class="lbl">Kategori fasilitas</div></div>
+        <div><div class="num">Leksana I–IV</div><div class="lbl">Dusun / wilayah RT-RW</div></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="layout">
+    <div class="col-list">
+      <div class="panel-title">
+        <h2>Daftar Lokasi</h2>
+        <span class="count" id="count-label">58 titik</span>
+      </div>
+      <div class="filters" id="filters"></div>
+      <div class="list" id="list"></div>
+    </div>
+
+    <div class="col-map">
+      <div class="map-wrap"><div id="map"></div></div>
+    </div>
+  </div>
+
+  <footer>
+    Data titik lokasi dihimpun dari basis data Google Maps per Juli 2026, kemudian disusun ulang untuk kebutuhan profil Desa Leksana.<br>
+    <strong>Desa Leksana</strong> · Kecamatan Karangkobar · Kabupaten Banjarnegara · Jawa Tengah
+  </footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+  const CATS = {
+    pemerintahan: { label:'Pemerintahan', color:'var(--c-pemerintahan)' },
+    keamanan:     { label:'Keamanan',     color:'var(--c-keamanan)' },
+    pendidikan:   { label:'Pendidikan',   color:'var(--c-pendidikan)' },
+    ibadah:       { label:'Ibadah',       color:'var(--c-ibadah)' },
+    kesehatan:    { label:'Kesehatan',    color:'var(--c-kesehatan)' },
+    ekonomi:      { label:'Ekonomi',      color:'var(--c-ekonomi)' },
+    umum:         { label:'Fasilitas Umum', color:'var(--c-umum)' },
+    kuliner:      { label:'Kuliner',      color:'var(--c-kuliner)' },
+    jasa:         { label:'Jasa & Bengkel', color:'var(--c-jasa)' },
+    penginapan:   { label:'Penginapan',   color:'var(--c-penginapan)' },
+  };
+
+  // Resolve CSS var() colors to real hex for use in canvas/DOM style attrs
+  function resolveColor(v){
+    const el = document.createElement('div');
+    el.style.color = v;
+    document.body.appendChild(el);
+    const rgb = getComputedStyle(el).color;
+    document.body.removeChild(el);
+    return rgb;
+  }
+  Object.keys(CATS).forEach(k => CATS[k].hex = resolveColor(CATS[k].color));
+
+  const PLACES = [
+    { name:"Kantor Desa Leksana", pid:"ChIJG4nVFRYGcC4R3bgCNY92Hxs", cat:"pemerintahan", lat:-7.2702174, lng:109.7425468, addr:"Jl. Prada Sabar Santosa, Leksana I, Kec. Karangkobar" },
+    { name:"Kantor Kepala Desa Leksana", pid:"ChIJ1Rkj938HcC4Rjid-kw5nZtQ", cat:"pemerintahan", lat:-7.2663416, lng:109.7412173, addr:"Leksana III, Kec. Karangkobar" },
+    { name:"Koramil 04 Karangkobar", pid:"ChIJrYETjhUGcC4R4dTi2U0HDK4", cat:"keamanan", lat:-7.2708378, lng:109.7392575, addr:"Jl. Raya Karangkobar–Pejawaran, Karangkobar Wetan" },
+    { name:"Polsek Karangkobar", pid:"ChIJ-SRi_RUGcC4RR9erPqKB7sw", cat:"keamanan", lat:-7.2708607, lng:109.7413561, addr:"Jemblung, Karangkobar Wetan, Sampang" },
+    { name:"KB Karya Mentari Leksana", pid:"ChIJzfnXRmQHcC4RGgc03UMfQd8", cat:"pendidikan", lat:-7.2657921, lng:109.7407022, addr:"Leksana II, Kec. Karangkobar" },
+    { name:"TK Pertiwi Leksana", pid:"ChIJ3wpC2RUGcC4RieCf4YspvmE", cat:"pendidikan", lat:-7.2696033, lng:109.7409809, addr:"Karanganyar, Leksana, Kec. Karangkobar" },
+    { name:"SDN 1 Leksana", pid:"ChIJm4BL6BoHcC4R_YXoU1a0D3s", cat:"pendidikan", lat:-7.2695043, lng:109.7406526, addr:"Leksana I, Kec. Karangkobar" },
+    { name:"SD Negeri 2 Leksana", pid:"ChIJ3aITpBMGcC4R0MHLeKwWXtQ", cat:"pendidikan", lat:-7.2669367, lng:109.7416138, addr:"Leksana III, Kec. Karangkobar" },
+    { name:"SD Negeri 3 Karangkobar", pid:"ChIJt37HnWwGcC4RiY3kx1dRzvk", cat:"pendidikan", lat:-7.2687459, lng:109.7354198, addr:"Jl. Desa, Leksana III, Kec. Karangkobar" },
+    { name:"SDIT Insan Mulia Karangkobar", pid:"ChIJpzZUhsIHcC4RVzaJI1trXDw", cat:"pendidikan", lat:-7.267109, lng:109.735864, addr:"Leksana III, Kec. Karangkobar" },
+    { name:"SMP Negeri 1 Karangkobar", pid:"ChIJrVmZVREGcC4RA-Ln604B6Kc", cat:"pendidikan", lat:-7.2661832, lng:109.7413025, addr:"Leksana II, Kec. Karangkobar" },
+    { name:"SMAN 1 Karangkobar", pid:"ChIJRaZMrhUGcC4RzuvlCsz_gCQ", cat:"pendidikan", lat:-7.2690617, lng:109.7390754, addr:"Leksana No.25, Leksana III, Kec. Karangkobar" },
+    { name:"TPQ Nurus Sabiq", pid:"ChIJVVVVVRIGcC4R5xwcienIxkA", cat:"pendidikan", lat:-7.2636795, lng:109.7383529, addr:"RT.01/03, Leksana II, Kec. Karangkobar" },
+    { name:"Masjid Baiturrohman Leksana", pid:"ChIJe5dd8xMGcC4RupiI_0ly3uw", cat:"ibadah", lat:-7.2658218, lng:109.7399094, addr:"Leksana II, Kec. Karangkobar" },
+    { name:"Masjid Al Islah", pid:"ChIJ3a2llRUGcC4RYKPw7NjKufM", cat:"ibadah", lat:-7.2702309, lng:109.7396833, addr:"Jl. Kauman, Karangkobar Wetan, Leksana" },
+    { name:"Masjid Nurul Hidayah", pid:"ChIJ1TXlZHIHcC4RxdlqNnnX5T4", cat:"ibadah", lat:-7.2649922, lng:109.7395985, addr:"RT.04/01, Leksana II, Kec. Karangkobar" },
+    { name:"Masjid Nurul Huda", pid:"ChIJ9aH_eyYHcC4RUyleS5kLY4U", cat:"ibadah", lat:-7.2656901, lng:109.7385325, addr:"RT.05/01, Leksana III, Kec. Karangkobar" },
+    { name:"Masjid Jami Al Khumaidi", pid:"ChIJZcBU0xUGcC4R7CcgKRjxsMk", cat:"ibadah", lat:-7.268689, lng:109.7409202, addr:"Leksana I, Kec. Karangkobar" },
+    { name:"Masjid Al Ikhlas", pid:"ChIJeWVgVRIGcC4Ry8cqYmbBKIY", cat:"ibadah", lat:-7.263596, lng:109.7383449, addr:"Leksana II, Kec. Karangkobar" },
+    { name:"Masjid Al-Munawwaroh", pid:"ChIJUz1s5BIGcC4Rjl4spR-hyWI", cat:"ibadah", lat:-7.2633388, lng:109.7372805, addr:"Sidamukti, Leksana IV, Kec. Karangkobar" },
+    { name:"Masjid AT-TAQWA", pid:"ChIJDZ7GYSYHcC4RtEMBuxDg274", cat:"ibadah", lat:-7.2666379, lng:109.7360349, addr:"Jl. Raya Gayam, Leksana IV, Kec. Karangkobar" },
+    { name:"Masjid Miftakhul Jannah", pid:"ChIJa3hYhxUGcC4RQ3tWP-7L4ew", cat:"ibadah", lat:-7.2688696, lng:109.7364325, addr:"Jl. Raya Gayam, Leksana III, Kec. Karangkobar" },
+    { name:"Masjid Nurussabiq", pid:"ChIJifhjG3oHcC4Rw20h8aAKJ7A", cat:"ibadah", lat:-7.2650432, lng:109.7431216, addr:"Jl. Raya Wanayasa–Karangkobar, Leksana II" },
+    { name:"Puskesmas Karangkobar", pid:"ChIJoeihBESpei4R3ODDhxXpxNU", cat:"kesehatan", lat:-7.2692041, lng:109.7349707, addr:"Jl. Raya Karangkobar, Gayam, Kec. Karangkobar" },
+    { name:"Pasar Umum Karangkobar", pid:"ChIJrbg1OhQGcC4RX0RtjT7XNAE", cat:"ekonomi", lat:-7.2713765, lng:109.7403368, addr:"Jl. Raya Karangkobar–Pejawaran, Karangkobar Wetan" },
+    { name:"Lapangan Desa Leksana", pid:"ChIJiaIfVhQGcC4R2ZlTZTJLzHE", cat:"umum", lat:-7.2684056, lng:109.7383426, addr:"Leksana III, Kec. Karangkobar" },
+
+    { name:"Warung Mak Tinah", pid:"ChIJ2W_dCcoHcC4R-SrVSx0CPC8", cat:"kuliner", lat:-7.2688825, lng:109.7396891, addr:"Loji, Leksana, Kec. Karangkobar" },
+    { name:"Rumah Makan Lamongan Cak Akim", pid:"ChIJPxiCwhUGcC4RIxEBBpHikRY", cat:"kuliner", lat:-7.2697501, lng:109.7402846, addr:"Leksana I, Kec. Karangkobar" },
+    { name:"Warung Makan Lamongan Indah 98 \"Pak Bambang\"", pid:"ChIJv6Pe6PYHcC4RXHkGGXQndKs", cat:"kuliner", lat:-7.270892, lng:109.7403771, addr:"Jl. Raya Wanayasa–Karangkobar, Karangkobar Wetan" },
+    { name:"Warung Makan Bu Slamet", pid:"ChIJaRe0NgAHcC4RYTgkk6VlL5U", cat:"kuliner", lat:-7.2708035, lng:109.7404076, addr:"Karangkobar Wetan, Kec. Karangkobar" },
+    { name:"Kedai Jeralyn", pid:"ChIJffGocQAHcC4RPLq4DAdhzbs", cat:"kuliner", lat:-7.2694018, lng:109.7407132, addr:"Jl. KH Hasyim Asy'ari No.1, Leksana I" },
+    { name:"Cafe Gedhong Kopi", pid:"ChIJvakT8hUGcC4RdnsMpdbDp70", cat:"kuliner", lat:-7.2675534, lng:109.7411079, addr:"Karangkobar Wetan, Leksana, Kec. Karangkobar" },
+    { name:"Kedai Yarra", pid:"ChIJ-UzSIQAHcC4RJLhLsVI6dBM", cat:"kuliner", lat:-7.2699138, lng:109.7365155, addr:"Jl. Raya Gayam, Leksana III" },
+    { name:"Dapur Terserah", pid:"ChIJpTTeZoMHcC4Rk8079A6YcAA", cat:"kuliner", lat:-7.2694224, lng:109.7401131, addr:"Jl. Raya Wanayasa–Karangkobar, Leksana I" },
+    { name:"Kuliner Karangkobar", pid:"ChIJ97ptW9EHcC4RGZBC7g7A-3o", cat:"kuliner", lat:-7.2639612, lng:109.7378647, addr:"Sidamukti, Leksana, Kec. Karangkobar" },
+
+    { name:"Toko Sembako Kusumajaya", pid:"ChIJYTgnRGUHcC4R3ds_913qArU", cat:"ekonomi", lat:-7.2663561, lng:109.7424075, addr:"Jl. Raya Karangkobar Km.5, Leksana I" },
+    { name:"Toko Sembako Robingah", pid:"ChIJkwzfeQAHcC4RZYNrpFFf0QE", cat:"ekonomi", lat:-7.26853, lng:109.7361821, addr:"Gayam, Leksana III, Kec. Karangkobar" },
+    { name:"Warung Sembako Bu Siti", pid:"ChIJ24mfYEMHcC4RtGw0kimnkgg", cat:"ekonomi", lat:-7.2656085, lng:109.7429085, addr:"Sidamulya, Leksana I, Kec. Karangkobar" },
+
+    { name:"\"R\" Motor (Bengkel)", pid:"ChIJf5QiyAoHcC4R0QR7QcmWGAI", cat:"jasa", lat:-7.2664776, lng:109.74169099, addr:"Jemblung, Leksana II, Kec. Karangkobar" },
+    { name:"Bank Jateng KCP Karangkobar", pid:"ChIJjZFBLQAHcC4RbjwuH09azkg", cat:"jasa", lat:-7.2721847, lng:109.7372473, addr:"Jl. Raya Wanayasa–Karangkobar, Leksana I" },
+    { name:"ATM BRI Karangkobar", pid:"ChIJKctcWzwHcC4RguY3ln78GIE", cat:"jasa", lat:-7.272219, lng:109.7415212, addr:"Karangkobar Wetan, Kec. Karangkobar" },
+    { name:"SPBU Pertamina Karangkobar", pid:"ChIJr-r3amoGcC4RwV42k0QzMlc", cat:"jasa", lat:-7.2706142, lng:109.7307966, addr:"Jl. Banjarnegara–Dieng Km.25, Karangkobar Kidul" },
+
+    { name:"Hotel Tirta Jadi (RedDoorz)", pid:"ChIJIZuNsxEGcC4Rtc9DF9wWRTM", cat:"penginapan", lat:-7.2624923, lng:109.7439079, addr:"Jl. Raya Wanayasa–Karangkobar, Leksana II" },
+    { name:"Kecapan Karangkobar Kidul (Homestay)", pid:"ChIJ4TgJ8A8HcC4R-C9vmxDaM88", cat:"penginapan", lat:-7.2669928, lng:109.7417115, addr:"Leksana I, Kec. Karangkobar" },
+
+    { name:"Mushola RT02/RW05", pid:"ChIJz_kkr-AHcC4RY-HVMlO0gLw", cat:"ibadah", lat:-7.2675869, lng:109.7399472, addr:"Leksana III, Kec. Karangkobar" },
+    { name:"Mushola Baitul Hikmah", pid:"ChIJc2umvVkHcC4RoJ4af9v2jWY", cat:"ibadah", lat:-7.269644, lng:109.7360771, addr:"Jl. Raya Gayam, Leksana III, Kec. Karangkobar" },
+    { name:"Gereja JKI Anugerah Illahi", pid:"ChIJlWrUUAAHcC4RwkPq705kAsk", cat:"ibadah", lat:-7.2715162, lng:109.7397260, addr:"Karangkobar Wetan, Kec. Karangkobar" },
+    { name:"Maqbarah KH. Muhammad Mustamir", pid:"ChIJEy6xq8EHcC4R-wGOuTQY8nk", cat:"ibadah", lat:-7.2702174, lng:109.7425468, addr:"Karanganyar, Leksana I, Kec. Karangkobar" },
+
+    { name:"Yulia Salon Karangkobar", pid:"ChIJv2kxVn4HcC4RLiNUM_vA3Hg", cat:"jasa", lat:-7.2692423, lng:109.7395558, addr:"Leksana III, Kec. Karangkobar" },
+    { name:"Maxx Laundry", pid:"ChIJZZ1aDgAHcC4RHQ8Df9V137o", cat:"jasa", lat:-7.2693611, lng:109.7375356, addr:"Puntuk Pari, Leksana III, Kec. Karangkobar" },
+    { name:"AB Laundry", pid:"ChIJF6qrFpwHcC4RSVn-tHUF1t8", cat:"jasa", lat:-7.2686322, lng:109.742689, addr:"Leksana I, Kec. Karangkobar" },
+    { name:"Zafaaroni Laundry dan Cookies", pid:"ChIJM6sJPwAHcC4RoHmMOeB0F5A", cat:"jasa", lat:-7.2636795, lng:109.7383528, addr:"Leksana II, Kec. Karangkobar" },
+    { name:"Mbok Laundry Leksana", pid:"ChIJ7_5-FQAHcC4RXHOZB8nABqE", cat:"jasa", lat:-7.2667796, lng:109.7415149, addr:"Leksana III, Kec. Karangkobar" },
+    { name:"Kantor Pos Karangkobar", pid:"ChIJ7wamY2sGcC4RKNUQY9qHkZc", cat:"jasa", lat:-7.2704997, lng:109.7411873, addr:"Ds. Leksana, Karangkobar Wetan, Kec. Karangkobar" },
+
+    { name:"Mantili (Toko HP, Kue & Plastik)", pid:"ChIJfb0QsRYGcC4Rq_NfLcdPH4E", cat:"ekonomi", lat:-7.2664986, lng:109.7423036, addr:"Leksana I, Kec. Karangkobar" },
+    { name:"BBC Cell Pusat HP & Aksesoris", pid:"ChIJXbm07hUGcC4RfEkY6vGYeQI", cat:"ekonomi", lat:-7.2702224, lng:109.7402683, addr:"Karangkobar Wetan, Kec. Karangkobar" },
+
+    { name:"Apotek Karangkobar", pid:"ChIJHx4qpJoHcC4RaFQ6atSwrTQ", cat:"kesehatan", lat:-7.2710732, lng:109.7402973, addr:"Karangkobar Wetan, Kec. Karangkobar" },
+    { name:"Apotek Rajawali", pid:"ChIJq6qqqm8GcC4RErbJ81B0ObU", cat:"kesehatan", lat:-7.2702324, lng:109.7405102, addr:"Komplek Pasar Karangkobar, Karangkobar Wetan" },
+  ];
+
+  PLACES.forEach((p,i)=> p.id = i+1);
+
+  function gmapsUrl(place){
+    if(place.pid){
+      return `https://www.google.com/maps/place/?q=place_id:${place.pid}`;
+    }
+    return `https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lng}`;
+  }
+
+  // ---- Map setup ----
+  const map = L.map('map', { scrollWheelZoom:true }).setView([-7.2685, 109.7385], 14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom:19,
+    attribution:'&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  function makeIcon(place, active){
+    const color = CATS[place.cat].hex;
+    return L.divIcon({
+      className:'',
+      html:`<div class="pin-wrap"><div class="pin" style="background:${color}"></div><div class="pin-num">${place.id}</div></div>`,
+      iconSize:[30,40],
+      iconAnchor:[15,40],
+      popupAnchor:[0,-34]
+    });
+  }
+
+  const markers = {};
+  PLACES.forEach(place=>{
+    const marker = L.marker([place.lat, place.lng], { icon: makeIcon(place) }).addTo(map);
+    marker.bindPopup(
+      `<div class="popup-cat">${CATS[place.cat].label} · No. ${place.id}</div>`+
+      `<div class="popup-name">${place.name}</div>`+
+      `<div class="popup-addr">${place.addr}</div>`+
+      `<a class="popup-gmaps" href="${gmapsUrl(place)}" target="_blank" rel="noopener">Buka di Google Maps ↗</a>`
+    );
+    marker.on('click', ()=> setActive(place.id, true));
+    markers[place.id] = marker;
+  });
+
+  // ---- Filters ----
+  const filtersEl = document.getElementById('filters');
+  let activeCats = new Set(Object.keys(CATS));
+
+  function renderFilters(){
+    filtersEl.innerHTML = '';
+    const allChip = document.createElement('button');
+    allChip.className = 'chip active';
+    allChip.id = 'chip-all';
+    allChip.innerHTML = `Semua`;
+    allChip.onclick = ()=>{ activeCats = new Set(Object.keys(CATS)); applyFilter(); };
+    filtersEl.appendChild(allChip);
+
+    Object.entries(CATS).forEach(([key, c])=>{
+      const chip = document.createElement('button');
+      chip.className = 'chip active';
+      chip.dataset.cat = key;
+      chip.innerHTML = `<span class="sw" style="background:${c.hex}"></span>${c.label}`;
+      chip.onclick = ()=>{
+        if(activeCats.has(key)){ activeCats.delete(key); } else { activeCats.add(key); }
+        applyFilter();
+      };
+      filtersEl.appendChild(chip);
+    });
+  }
+
+  function applyFilter(){
+    document.querySelectorAll('.chip[data-cat]').forEach(chip=>{
+      chip.classList.toggle('active', activeCats.has(chip.dataset.cat));
+    });
+    document.getElementById('chip-all').classList.toggle('active', activeCats.size === Object.keys(CATS).length);
+
+    let visible = 0;
+    PLACES.forEach(place=>{
+      const show = activeCats.has(place.cat);
+      document.getElementById('item-'+place.id).classList.toggle('hidden', !show);
+      markers[place.id].setOpacity(show ? 1 : 0);
+      if(show) visible++;
+    });
+    document.getElementById('count-label').textContent = visible + ' titik';
+  }
+
+  // ---- List ----
+  const listEl = document.getElementById('list');
+  PLACES.forEach(place=>{
+    const item = document.createElement('div');
+    item.className = 'item';
+    item.id = 'item-'+place.id;
+    item.style.setProperty('--cat-color', CATS[place.cat].hex);
+    item.innerHTML = `
+      <div class="item-num">${place.id}</div>
+      <div class="item-body">
+        <div class="item-cat">${CATS[place.cat].label}</div>
+        <div class="item-name">${place.name}</div>
+        <div class="item-addr">${place.addr}</div>
+        <a class="item-gmaps" href="${gmapsUrl(place)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Buka di Google Maps ↗</a>
+      </div>`;
+    item.onclick = ()=> setActive(place.id, false);
+    listEl.appendChild(item);
+  });
+
+  let currentActive = null;
+  function setActive(id, fromMap){
+    if(currentActive){
+      document.getElementById('item-'+currentActive).classList.remove('active');
+    }
+    currentActive = id;
+    const el = document.getElementById('item-'+id);
+    el.classList.add('active');
+    if(!fromMap){ el.scrollIntoView({behavior:'smooth', block:'nearest'}); }
+
+    const place = PLACES.find(p=>p.id===id);
+    map.flyTo([place.lat, place.lng], 17, { duration:0.6 });
+    markers[id].openPopup();
+  }
+
+  renderFilters();
+</script>
+</body>
+</html>
